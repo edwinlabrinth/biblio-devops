@@ -1,0 +1,11 @@
+.git
+.github
+.gitignore
+.gitattributes
+.editorconfig
+.vscode
+.idea
+report
+docs
+*.md
+*.log
