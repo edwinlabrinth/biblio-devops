@@ -75,3 +75,8 @@ jobs:
         run: |
           printf '0\n' | docker run --rm -i --read-only --tmpfs /tmp \
             --security-opt no-new-privileges:true biblio:ci
+
+      - name: Verifier la sortie sur fin de STDIN
+        run: |
+          timeout 5 bash -c "printf '' | php index.php"
+          test $? -eq 0
