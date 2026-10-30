@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Tests avant publication
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - run: php tests/run.php
+
+  image:
+    name: Image multi-tags SemVer
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Calculer les tags SemVer
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: biblio
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+
+      - name: Construire l image (sans publication)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Verifier les tags et le smoke test
+        run: |
+          docker image inspect --format 'User={{.Config.User}}' biblio:${{ github.ref_name }}
+          printf '0\n' | docker run --rm -i --read-only --tmpfs /tmp biblio:${GITHUB_REF_NAME#v}
+
+  # Publication Docker Hub volontairement desactivee (hors perimetre de l'examen).
+  # Pour l'activer : definir la variable de depot DOCKERHUB_ENABLED=true
+  # et les secrets DOCKERHUB_USERNAME / DOCKERHUB_TOKEN.
+  publish:
+    name: Publication Docker Hub (optionnelle)
+    if: vars.DOCKERHUB_ENABLED == 'true'
+    needs: image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/biblio
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
