@@ -14,7 +14,9 @@ function lireEntree(string $prompt): string
     echo $prompt;
     $ligne = fgets(STDIN);
     if ($ligne === false) {
-        return '';
+        // Fin de l'entree standard : on quitte proprement au lieu de boucler.
+        echo "\nFin de l'entree standard.\n";
+        exit(0);
     }
     return trim($ligne);
 }
