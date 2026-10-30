@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Tests & Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recuperer le depot
+        uses: actions/checkout@v4
+
+      - name: Installer PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Verifier la syntaxe PHP
+        run: |
+          php -l autoload.php
+          php -l index.php
+          find src tests -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Executer les tests unitaires
+        run: |
+          set -o pipefail
+          php tests/run.php | tee test-report.txt
+
+      - name: Quality Gate bloquante
+        run: |
+          if ! grep -q "Tous les tests passent." test-report.txt; then
+            echo "::error::Quality Gate echouee : tous les tests doivent passer."
+            exit 1
+          fi
+
+      - name: Publier le rapport de tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-tests
+          path: test-report.txt
+          if-no-files-found: warn
+
+  docker:
+    name: Build & Smoke Test Docker
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recuperer le depot
+        uses: actions/checkout@v4
+
+      - name: Construire l image (tests executes au build)
+        run: docker build -t biblio:ci .
+
+      - name: Verifier l utilisateur non privilegie
+        run: |
+          uid="$(docker run --rm --entrypoint id biblio:ci -u)"
+          echo "UID dans le conteneur : $uid"
+          test "$uid" != "0"
+
+      - name: Smoke test ephemere et isole
+        run: |
+          printf '0\n' | docker run --rm -i --read-only --tmpfs /tmp \
+            --security-opt no-new-privileges:true biblio:ci
