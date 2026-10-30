@@ -6,6 +6,13 @@ et le versionnage suit [SemVer](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-30
+### Fixed
+- Sortie propre du menu lorsque l'entrée standard est fermée (mode conteneur).
+- Vérification du tag d'image dans le workflow de release (`v1.0.0` -> `1.0.0`).
+### Added
+- Smoke test CI sur la fin de STDIN pour prévenir la régression.
+
 ## [1.0.0] - 2026-10-30
 ### Added
 - Modèles `Livre`, `Membre` et `Bibliotheque` avec validation des ISBN,
