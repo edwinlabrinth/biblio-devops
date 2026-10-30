@@ -49,7 +49,7 @@ jobs:
 
       - name: Verifier les tags et le smoke test
         run: |
-          docker image inspect --format 'User={{.Config.User}}' biblio:${{ github.ref_name }}
+          docker image inspect --format 'User={{.Config.User}}' biblio:${GITHUB_REF_NAME#v}
           printf '0\n' | docker run --rm -i --read-only --tmpfs /tmp biblio:${GITHUB_REF_NAME#v}
 
   # Publication Docker Hub volontairement desactivee (hors perimetre de l'examen).
