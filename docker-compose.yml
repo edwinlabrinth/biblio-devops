@@ -1,0 +1,14 @@
+services:
+  biblio:
+    build:
+      context: .
+      target: runtime
+    image: biblio:dev
+    stdin_open: true
+    tty: true
+    # Conteneur ephemere et isole : systeme de fichiers en lecture seule
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
