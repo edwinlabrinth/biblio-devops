@@ -2,9 +2,4 @@
 .idea/
 *.log
 .DS_Store
-report/*.aux
-report/*.log
-report/*.out
-report/*.toc
-report/*.synctex.gz
-report/build/
+report/
